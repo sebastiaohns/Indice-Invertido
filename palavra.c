@@ -1,109 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "palavra.h"
 
-typedef struct Indice{
-	int key, rpt;
-	struct Indice *next;
-}indice;
-
-typedef struct Palavra{
-	char str[30];
-	indice *first;
-}palavra;
-
-typedef struct Node{
-	palavra *plv;
-	struct Node *next;
-}node;
-
-typedef struct Lista{
-	node *first;
-}lista;
-
-lista *criar();
-void inserir(lista *l, char *str, int key);
-palavra *inserirStr(char *str, int key);
-int checaPalavra(palavra *plv, char* str, int key);
-void inserirIndice(palavra *tmp, int key);
-void mostrar(lista *l); 
-
-lista *criar()
+int checaPalavra(tnode *t, palavra *plv, char* str, int key)
 {
-	lista *l;
 
-	l = (lista*)malloc(sizeof(lista));
-
-	if(l != NULL)
-	{
-		l->first = NULL;
-		return l;
-	}
-	return NULL;
-}
-
-void inserir(lista *l, char *str, int key)
-{
-	if(l != NULL)
-	{
-		int flag=1;
-		node *aux, *tmp;
-		tmp = (node*)malloc(sizeof(node));
-
-		if(l->first != NULL)
-        {
-            aux = l->first;
-            while(aux->next != NULL && flag != 0)
-            {
-            	flag = checaPalavra(aux->plv, str, key);            	
-                aux = aux->next;
-            }
-
-            if(flag == 1)
-            {
-            	flag = checaPalavra(aux->plv, str, key);  
-            }
-
-            if(flag == 1)
-            {
-            	tmp->plv = inserirStr(str, key);
-            	tmp->next = NULL;
-            	aux->next = tmp;
-            }
-        }
-        else
-        {
-            tmp->plv = inserirStr(str, key);
-            tmp->next = NULL;
-            l->first = tmp;
-        }
-	}
-}
-
-palavra *inserirStr(char *str, int key)
-{
-	palavra *plv;
-	plv = (palavra*)malloc(sizeof(palavra));
-
-	if(plv != NULL)
-	{
-		strcpy(plv->str, str);
-
-		indice *tmp;
-		tmp = (indice*)malloc(sizeof(indice));
-
-		tmp->key = key;
-		tmp->rpt = 1;
-		tmp->next = NULL;
-		plv->first = tmp;	
-
-        return plv;
-	}
-	return NULL;
-}
-
-int checaPalavra(palavra *plv, char* str, int key)
-{
 	int flag=1;
 	indice *aux, *tmp;
 
@@ -122,7 +24,7 @@ int checaPalavra(palavra *plv, char* str, int key)
 		{
 			flag = 0;
 		}
-		
+
 		if(flag == 0)
 		{
 			aux->rpt++;
@@ -140,62 +42,175 @@ int checaPalavra(palavra *plv, char* str, int key)
 	return 1;
 }
 
-void mostrar(lista *l)
+tnode* criar()
 {
-	if(l != NULL && l->first != NULL)
-	{
-		
-		node *aux;
-		palavra *auxPlv;
-		indice *auxI;
-
-		aux = l->first;
-
-		while(aux != NULL)
-		{
-			auxPlv = aux->plv;
-
-			auxI = auxPlv->first;
-			while(auxI != NULL)
-			{
-				printf("<%d, %d> ", auxI->key, auxI->rpt);
-				auxI = auxI->next;
-			}
-
-			printf(" %s\n", auxPlv->str);			
-			aux = aux->next;
-		}
-	}
+    return NULL;
 }
 
-void main()
+void inserir(tnode** t, char *str, int key)
 {
-	int x, i=0;
-	char str[30], arquivo[50], op[2]="s";
+    if(*t == NULL)
+    {
+        *t = (tnode*)malloc(sizeof(tnode));
+        (*t)->r = NULL;
+        (*t)->l = NULL;
 
-	lista *l, *aux;
-	l = criar();
+        palavra *aux;
 
-	FILE *arq;
+        aux = (palavra*)malloc(sizeof(palavra));
+        strcpy(aux->str, str);
 
-	while(strcmp(op, "n") != 0)
+        (*t)->data = inserirStr(str, key);
+    }
+    else
+    {
+        if(strcmp((*t)->data->str, str) >= 0)
+        {
+            inserir(&(*t)->r, str, key);
+        }
+        if(strcmp((*t)->data->str, str) < 0)
+        {
+            inserir(&(*t)->l, str, key);
+        }
+    }
+}
+
+palavra *inserirStr(char *str, int key)
+{
+	palavra *plv;
+	plv = (palavra*)malloc(sizeof(palavra));
+
+	if(plv != NULL)
 	{
-		printf("Nome do arquivo: ");
-		scanf("%s", arquivo);
+		strcpy(plv->str, str);
 
-		arq = fopen(arquivo, "r");
+		indice *tmp;
+		tmp = (indice*)malloc(sizeof(indice));
 
-	    x = fscanf(arq, "%s", str);
-	    while(x != EOF)
-	    {
-	        inserir(l, str, i);
-	        x = fscanf(arq, "%s", str);
-	    }
+		tmp->key = key;
+		tmp->rpt = 1;
+		tmp->next = NULL;
+		plv->first = tmp;
 
-		printf("Deseja abrir outro arquivo? (s/n)");
-		scanf("%s", op);
-		i++;
+        return plv;
 	}
+	return NULL;
+}
 
-	mostrar(l);
+palavra *buscarStr(tnode *t, char *str)
+{
+    if(t == NULL)
+        return NULL;
+    if(strcmp(t->data->str, str) == 0)
+        return t->data;
+    if (strcmp(t->data->str, str) < 0)
+       return buscarStr(t->l, str);
+    else
+       return buscarStr(t->r, str);
+}
+
+int buscarIndice(palavra *plv, int key)
+{
+    indice *aux;
+    aux = plv->first;
+    while(aux != NULL)
+    {
+        if(aux->key == key)
+        {
+            return 1;
+        }
+        aux = aux->next;
+    }
+    return 0;
+}
+
+void incrementarRpt(palavra *plv, int key)
+{
+    if(plv != NULL)
+    {
+        indice *aux;
+        aux = plv->first;
+        while(aux != NULL)
+        {
+            if(aux->key == key)
+            {
+                aux->rpt++;
+            }
+            aux = aux->next;
+        }
+    }
+}
+
+void incrementarIndice(palavra *plv, int key)
+{
+    if(plv != NULL)
+    {
+        indice *aux, *tmp;
+
+        tmp = (indice*)malloc(sizeof(indice));
+        tmp->key = key;
+        tmp->rpt = 1;
+        tmp->next = NULL;
+
+        aux = plv->first;
+        while(aux != NULL)
+        {
+            aux = aux->next;
+        }
+
+        aux->next = tmp;
+    }
+}
+
+
+
+/*
+ * FUNÇÕES DE MOSTRAR A ARVORE!!
+ */
+
+
+void abPreOrdem(tnode *t)
+{
+    if(t != NULL)
+    {
+        printf("%s ", t->data->str);
+        abPreOrdem(t->l);
+        abPreOrdem(t->r);
+    }
+}
+
+void abPosOrdem(tnode *t)
+{
+    if(t != NULL)
+    {
+        abPosOrdem(t->l);
+        abPosOrdem(t->r);
+        printf("%s ", t->data->str);
+    }
+}
+
+void abSimetrica(tnode *t)
+{
+    if(t != NULL)
+    {
+        abSimetrica(t->l);
+        mostrar(t->data);
+        abSimetrica(t->r);
+    }
+}
+
+void mostrar(palavra *plv)
+{
+	if(plv != NULL && plv->first != NULL)
+	{
+	    indice *aux;
+        aux = plv->first;
+        while(aux != NULL)
+        {
+            printf("<%d, %d> ", aux->key, aux->rpt);
+            aux = aux->next;
+        }
+
+        printf(" %s\n", plv->str);
+	}
 }
